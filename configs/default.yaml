@@ -1,0 +1,63 @@
+project_name: mm_rcna_mimic
+
+paths:
+  artifacts_dir: ./artifacts
+
+models:
+  text_encoder_name: hash-text-encoder
+  image_encoder_name: hash-image-encoder
+  vision_backbone_name: simple-vision-backbone
+  image_size: 224
+  lesion_labels: [atelectasis, cardiomegaly, edema, effusion, opacity, pneumothorax]
+  lung_regions: [left_upper, left_lower, right_upper, right_lower]
+  use_trained_vision_heads: false
+  vision_checkpoint: ./artifacts/vision_heads.json
+
+retrieval:
+  index_dir: ./artifacts/index
+  top_k: 8
+  conflict_top_k: 6
+  min_effective_n: 4
+  image_weight: 0.5
+  text_weight: 0.5
+  exclude_same_subject: true
+
+conformal:
+  alpha: 0.1
+  qhat: 0.15
+  qhat_json: ./artifacts/conformal.json
+
+contracts:
+  unstable_dist_std_threshold: 0.20
+  high_conflict_threshold: 0.55
+  high_conflict_min_width: 0.20
+  low_coverage_threshold: 0.35
+  min_interval_low: 0.0
+  max_interval_high: 1.0
+
+repair:
+  max_rounds: 3
+  api_budget: 0
+  token_budget: 0
+  use_learned_policy: false
+  learned_policy_path: ./artifacts/repair_policy.pkl
+
+prediction:
+  tasks:
+    - name: mortality_risk
+      label_column: mortality_risk
+      evidence_topics: [criticality, respiratory_status, hemodynamics]
+    - name: icu_risk
+      label_column: icu_risk
+      evidence_topics: [criticality, respiratory_status, support_devices]
+    - name: ventilation_risk
+      label_column: ventilation_risk
+      evidence_topics: [respiratory_status, support_devices]
+
+data:
+  studies_csv: ./artifacts/studies.csv
+  labels_csv: ./artifacts/labels.csv
+  notes_dir: ./artifacts/notes
+  reports_dir: ./artifacts/reports
+  images_dir: ./artifacts/images
+  index_dir: ./artifacts/index

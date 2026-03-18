@@ -1,0 +1,226 @@
+{
+  "study_id": "demo-study-001",
+  "predictions": [
+    {
+      "task_name": "mortality_risk",
+      "point": 0.03047916666666667,
+      "interval_low": 0.0,
+      "interval_high": 0.39383333333333337,
+      "abstain": false,
+      "rationale": "evidence=0.700, retrieval=0.000, coverage=0.333, conflict=0.850"
+    },
+    {
+      "task_name": "icu_risk",
+      "point": 0.03047916666666667,
+      "interval_low": 0.0,
+      "interval_high": 0.39383333333333337,
+      "abstain": false,
+      "rationale": "evidence=0.700, retrieval=0.000, coverage=0.333, conflict=0.850"
+    },
+    {
+      "task_name": "ventilation_risk",
+      "point": 0.034416666666666665,
+      "interval_low": 0.0,
+      "interval_high": 0.42533333333333334,
+      "abstain": false,
+      "rationale": "evidence=0.800, retrieval=0.000, coverage=0.333, conflict=0.850"
+    }
+  ],
+  "verifications": {
+    "mortality_risk": {
+      "task_name": "mortality_risk",
+      "passed": false,
+      "violations": [
+        "insufficient_support",
+        "high_conflict"
+      ],
+      "confidence": 0.1499999999999999
+    },
+    "icu_risk": {
+      "task_name": "icu_risk",
+      "passed": false,
+      "violations": [
+        "insufficient_support",
+        "high_conflict"
+      ],
+      "confidence": 0.1499999999999999
+    },
+    "ventilation_risk": {
+      "task_name": "ventilation_risk",
+      "passed": false,
+      "violations": [
+        "insufficient_support",
+        "high_conflict"
+      ],
+      "confidence": 0.1499999999999999
+    }
+  },
+  "retrievals": {
+    "mortality_risk": {
+      "task_name": "mortality_risk",
+      "neighbors": [],
+      "median": 0.0,
+      "q10": 0.0,
+      "q90": 0.0,
+      "std": 0.0,
+      "effective_n": 0,
+      "insufficient_support": true,
+      "unstable_distribution": false,
+      "query_text": "respiratory_status: opacity, effusion, respiratory ; criticality: unstable, icu"
+    },
+    "icu_risk": {
+      "task_name": "icu_risk",
+      "neighbors": [],
+      "median": 0.0,
+      "q10": 0.0,
+      "q90": 0.0,
+      "std": 0.0,
+      "effective_n": 0,
+      "insufficient_support": true,
+      "unstable_distribution": false,
+      "query_text": "respiratory_status: opacity, effusion, respiratory ; criticality: unstable, icu"
+    },
+    "ventilation_risk": {
+      "task_name": "ventilation_risk",
+      "neighbors": [],
+      "median": 0.0,
+      "q10": 0.0,
+      "q90": 0.0,
+      "std": 0.0,
+      "effective_n": 0,
+      "insufficient_support": true,
+      "unstable_distribution": false,
+      "query_text": "respiratory_status: opacity, effusion, respiratory ; criticality: unstable, icu"
+    }
+  },
+  "conflicts": {
+    "mortality_risk": {
+      "task_name": "mortality_risk",
+      "conflict_score": 0.8500000000000001,
+      "conflict_sources": [
+        "vision_quality_issue"
+      ],
+      "conflict_vector": [
+        0.7000000000000001,
+        0.0,
+        0.0,
+        0.15
+      ],
+      "trigger_conflict_retrieval": true
+    },
+    "icu_risk": {
+      "task_name": "icu_risk",
+      "conflict_score": 0.8500000000000001,
+      "conflict_sources": [
+        "vision_quality_issue"
+      ],
+      "conflict_vector": [
+        0.7000000000000001,
+        0.0,
+        0.0,
+        0.15
+      ],
+      "trigger_conflict_retrieval": true
+    },
+    "ventilation_risk": {
+      "task_name": "ventilation_risk",
+      "conflict_score": 0.8500000000000001,
+      "conflict_sources": [
+        "vision_quality_issue"
+      ],
+      "conflict_vector": [
+        0.7000000000000001,
+        0.0,
+        0.0,
+        0.15
+      ],
+      "trigger_conflict_retrieval": true
+    }
+  },
+  "coverage": 0.3333333333333333,
+  "explanation_text": "Study demo-study-001 summary:\n- fused evidence count: 2\n- mortality_risk: point=0.030, interval=[0.000, 0.394], abstain=False, retrieval_n=0, conflict=0.850\n- icu_risk: point=0.030, interval=[0.000, 0.394], abstain=False, retrieval_n=0, conflict=0.850\n- ventilation_risk: point=0.034, interval=[0.000, 0.425], abstain=False, retrieval_n=0, conflict=0.850\n- audit events: 9",
+  "audit_trace": [
+    {
+      "round_idx": 0,
+      "action": "trigger_conflict_retrieval",
+      "reason": "Conflict too high",
+      "updated_modules": [
+        "task_prediction",
+        "conflict_retrieval"
+      ]
+    },
+    {
+      "round_idx": 1,
+      "action": "trigger_conflict_retrieval",
+      "reason": "Conflict too high",
+      "updated_modules": [
+        "task_prediction",
+        "conflict_retrieval"
+      ]
+    },
+    {
+      "round_idx": 2,
+      "action": "trigger_conflict_retrieval",
+      "reason": "Conflict too high",
+      "updated_modules": [
+        "task_prediction",
+        "conflict_retrieval"
+      ]
+    },
+    {
+      "round_idx": 0,
+      "action": "trigger_conflict_retrieval",
+      "reason": "Conflict too high",
+      "updated_modules": [
+        "task_prediction",
+        "conflict_retrieval"
+      ]
+    },
+    {
+      "round_idx": 1,
+      "action": "trigger_conflict_retrieval",
+      "reason": "Conflict too high",
+      "updated_modules": [
+        "task_prediction",
+        "conflict_retrieval"
+      ]
+    },
+    {
+      "round_idx": 2,
+      "action": "trigger_conflict_retrieval",
+      "reason": "Conflict too high",
+      "updated_modules": [
+        "task_prediction",
+        "conflict_retrieval"
+      ]
+    },
+    {
+      "round_idx": 0,
+      "action": "trigger_conflict_retrieval",
+      "reason": "Conflict too high",
+      "updated_modules": [
+        "task_prediction",
+        "conflict_retrieval"
+      ]
+    },
+    {
+      "round_idx": 1,
+      "action": "trigger_conflict_retrieval",
+      "reason": "Conflict too high",
+      "updated_modules": [
+        "task_prediction",
+        "conflict_retrieval"
+      ]
+    },
+    {
+      "round_idx": 2,
+      "action": "trigger_conflict_retrieval",
+      "reason": "Conflict too high",
+      "updated_modules": [
+        "task_prediction",
+        "conflict_retrieval"
+      ]
+    }
+  ],
+  "conformal_qhat_used": 0.15
+}
