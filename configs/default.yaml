@@ -1,3 +1,4 @@
+
 project_name: mm_rcna_mimic
 
 paths:
@@ -12,6 +13,15 @@ models:
   lung_regions: [left_upper, left_lower, right_upper, right_lower]
   use_trained_vision_heads: false
   vision_checkpoint: ./artifacts/vision_heads.json
+
+  api:
+    enabled: true
+    provider: azure_proxy
+    base_url: https://wei-agent-proxy-bshah3affxh0hyd0.centralus-01.azurewebsites.net/v1
+    auth_token_env: MM_RCNA_AGENT_TOKEN
+    llm_model: gpt-4o-mini
+    temperature: 0.0
+    timeout: 120
 
 retrieval:
   index_dir: ./artifacts/index
@@ -57,7 +67,18 @@ prediction:
 data:
   studies_csv: ./artifacts/studies.csv
   labels_csv: ./artifacts/labels.csv
+  index_dir: ./artifacts/index
+
+  raw_root: /home/azureuser/mimic-cxr
+  raw_images_dir: /home/azureuser/mimic-cxr
+  raw_reports_dir: /home/azureuser/mimic-cxr
+  raw_notes_dir: /home/azureuser/mimic-cxr
+
   notes_dir: ./artifacts/notes
   reports_dir: ./artifacts/reports
   images_dir: ./artifacts/images
-  index_dir: ./artifacts/index
+
+  chexpert_csv: ""
+  task_labels_csv: ./artifacts/labels.csv
+
+  prefer_raw_data: true

@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -11,6 +12,17 @@ class PathsConfig:
 
 
 @dataclass
+class APIConfig:
+    enabled: bool = False
+    provider: str = "azure_proxy"
+    base_url: str = "https://wei-agent-proxy-bshah3affxh0hyd0.centralus-01.azurewebsites.net/v1"
+    auth_token_env: str = "MM_RCNA_AGENT_TOKEN"
+    llm_model: str = "gpt-4o-mini"
+    temperature: float = 0.0
+    timeout: int = 120
+
+
+@dataclass
 class ModelsConfig:
     text_encoder_name: str
     image_encoder_name: str
@@ -20,6 +32,7 @@ class ModelsConfig:
     lung_regions: List[str]
     use_trained_vision_heads: bool = False
     vision_checkpoint: str = "./artifacts/vision_heads.json"
+    api: APIConfig = field(default_factory=APIConfig)
 
 
 @dataclass
@@ -73,12 +86,28 @@ class PredictionConfig:
 
 @dataclass
 class DataConfig:
+    # minimal structured assets we still keep
     studies_csv: str
     labels_csv: str
-    notes_dir: str
-    reports_dir: str
-    images_dir: str
     index_dir: str
+
+    # raw-first roots
+    raw_root: str = ""
+    raw_images_dir: str = ""
+    raw_reports_dir: str = ""
+    raw_notes_dir: str = ""
+
+    # fallback prepared dirs
+    notes_dir: str = "./artifacts/notes"
+    reports_dir: str = "./artifacts/reports"
+    images_dir: str = "./artifacts/images"
+
+    # extra optional tabular sources used by auto-label build
+    chexpert_csv: str = ""
+    task_labels_csv: str = "./artifacts/labels.csv"
+
+    # behavior switch
+    prefer_raw_data: bool = True
 
 
 @dataclass
@@ -99,16 +128,21 @@ def _task_from_dict(obj: dict[str, Any]) -> TaskConfig:
 
 
 def load_config(path: str) -> AppConfig:
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, "r", encoding="utf-8") as f:
         raw = yaml.safe_load(f)
+
+    models_raw = dict(raw["models"])
+    api_raw = models_raw.pop("api", {})
+    models_cfg = ModelsConfig(**models_raw, api=APIConfig(**api_raw))
+
     return AppConfig(
-        project_name=raw.get('project_name', 'mm_rcna_mimic'),
-        paths=PathsConfig(**raw['paths']),
-        models=ModelsConfig(**raw['models']),
-        retrieval=RetrievalConfig(**raw['retrieval']),
-        conformal=ConformalConfig(**raw['conformal']),
-        contracts=ContractsConfig(**raw['contracts']),
-        repair=RepairConfig(**raw['repair']),
-        prediction=PredictionConfig(tasks=[_task_from_dict(x) for x in raw['prediction']['tasks']]),
-        data=DataConfig(**raw['data']),
+        project_name=raw.get("project_name", "mm_rcna_mimic"),
+        paths=PathsConfig(**raw["paths"]),
+        models=models_cfg,
+        retrieval=RetrievalConfig(**raw["retrieval"]),
+        conformal=ConformalConfig(**raw["conformal"]),
+        contracts=ContractsConfig(**raw["contracts"]),
+        repair=RepairConfig(**raw["repair"]),
+        prediction=PredictionConfig(tasks=[_task_from_dict(x) for x in raw["prediction"]["tasks"]]),
+        data=DataConfig(**raw["data"]),
     )

@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -25,29 +26,9 @@ def _clean_id(x) -> Optional[str]:
 
 
 class MIMICCXRStudyBuilder:
-    """
-    Goal:
-    1) Prefer raw/original MIMIC-style hierarchy whenever possible.
-    2) Fall back to the old artifacts layout if present.
-    3) Avoid requiring pre-flattened images or per-study copied txt files.
-
-    Supported raw image hierarchy:
-      <images_dir>/p10/p10000032/s50414267/*.jpg
-
-    Supported fallback flat hierarchy:
-      <images_dir>/50414267_0.jpg
-      <images_dir>/50414267_1.jpg
-
-    Supported report/note lookup order:
-      1) raw hierarchy under reports_dir / notes_dir
-      2) flat <dir>/<study_id>.txt
-    """
-
     def __init__(self, config: AppConfig) -> None:
         self.cfg = config
 
-        # Keep compatibility with the repo, but do not REQUIRE a full studies.csv.
-        # If it exists, we use it to get subject_id exactly.
         p = Path(config.data.studies_csv)
         if p.exists():
             try:
@@ -60,28 +41,20 @@ class MIMICCXRStudyBuilder:
     def _get_subject_id_from_df(self, study_id: str) -> Optional[str]:
         if self.df.empty or "study_id" not in self.df.columns:
             return None
-
         row = self.df[self.df["study_id"].astype(str) == str(study_id)]
         if row.empty:
             return None
-
         row0 = row.iloc[0]
         if "subject_id" not in row0:
             return None
-
         return _clean_id(row0["subject_id"])
 
     def _infer_subject_id_from_raw_tree(self, image_root: Path, study_id: str) -> Optional[str]:
-        """
-        Search raw MIMIC hierarchy:
-          pXX/pXXXXXXXX/sYYYYYYYY
-        and infer subject_id from parent directory name pXXXXXXXX.
-        """
         study_dir_name = f"s{study_id}"
         for study_dir in image_root.glob(f"p*/p*/{study_dir_name}"):
             if not study_dir.is_dir():
                 continue
-            patient_dir = study_dir.parent.name  # p10000032
+            patient_dir = study_dir.parent.name
             if patient_dir.startswith("p") and len(patient_dir) > 1:
                 return patient_dir[1:]
         return None
@@ -94,17 +67,10 @@ class MIMICCXRStudyBuilder:
         return out
 
     def _list_raw_images(self, image_root: Path, study_id: str, subject_id: Optional[str]) -> List[Path]:
-        """
-        Prefer exact raw path if subject_id is known:
-          <root>/p10/p10000032/s50414267/*.jpg
-
-        Otherwise fall back to recursive-ish glob by study_id.
-        """
         out: List[Path] = []
         study_id = _clean_id(study_id)
         subject_id = _clean_id(subject_id)
 
-        # Exact path first
         if subject_id and subject_id.isdigit() and len(subject_id) >= 2:
             exact_dir = image_root / f"p{subject_id[:2]}" / f"p{subject_id}" / f"s{study_id}"
             if exact_dir.exists() and exact_dir.is_dir():
@@ -114,25 +80,15 @@ class MIMICCXRStudyBuilder:
                 if out:
                     return out
 
-        # Fallback: search by study directory
         for candidate in sorted(image_root.glob(f"p*/p*/s{study_id}/*")):
             if candidate.is_file() and candidate.suffix.lower() in IMAGE_SUFFIXES:
                 out.append(candidate)
-
         return out
 
     def _read_flat_txt(self, root: Path, study_id: str) -> str:
         return read_text_if_exists(root / f"{study_id}.txt")
 
     def _read_raw_txt(self, root: Path, study_id: str, subject_id: Optional[str]) -> str:
-        """
-        Try a few raw-style patterns under root.
-
-        We do not assume one exact report tree, so try:
-          <root>/p10/p10000032/s50414267.txt
-          <root>/p10/p10000032/50414267.txt
-          <root>/p10/p10000032/s50414267/*.txt
-        """
         study_id = _clean_id(study_id)
         subject_id = _clean_id(subject_id)
 
@@ -156,65 +112,81 @@ class MIMICCXRStudyBuilder:
                     if txt:
                         return txt
 
-        # fallback by study id only
         for p in sorted(root.glob(f"p*/p*/s{study_id}.txt")):
             txt = read_text_if_exists(p)
             if txt:
                 return txt
-
         for p in sorted(root.glob(f"p*/p*/{study_id}.txt")):
             txt = read_text_if_exists(p)
             if txt:
                 return txt
-
         for p in sorted(root.glob(f"p*/p*/s{study_id}/*.txt")):
             txt = read_text_if_exists(p)
             if txt:
                 return txt
-
         return ""
 
-    def _load_notes(self, study_id: str, subject_id: Optional[str]) -> str:
-        root = Path(self.cfg.data.notes_dir)
+    def _resolve_raw_root(self, preferred: str, fallback_prepared: str) -> tuple[Path | None, Path]:
+        raw_root = Path(preferred) if preferred else None
+        prepared_root = Path(fallback_prepared)
+        return raw_root, prepared_root
 
-        # Prefer raw/original-style first
-        txt = self._read_raw_txt(root, study_id, subject_id)
+    def _load_notes(self, study_id: str, subject_id: Optional[str]) -> str:
+        raw_root, prepared_root = self._resolve_raw_root(
+            self.cfg.data.raw_notes_dir, self.cfg.data.notes_dir
+        )
+        if self.cfg.data.prefer_raw_data and raw_root is not None:
+            txt = self._read_raw_txt(raw_root, study_id, subject_id)
+            if txt:
+                return txt
+        txt = self._read_flat_txt(prepared_root, study_id)
         if txt:
             return txt
-
-        # Fall back to old artifacts layout
-        return self._read_flat_txt(root, study_id)
+        if (not self.cfg.data.prefer_raw_data) and raw_root is not None:
+            return self._read_raw_txt(raw_root, study_id, subject_id)
+        return ""
 
     def _load_report(self, study_id: str, subject_id: Optional[str]) -> str:
-        root = Path(self.cfg.data.reports_dir)
-
-        # Prefer raw/original-style first
-        txt = self._read_raw_txt(root, study_id, subject_id)
+        raw_root, prepared_root = self._resolve_raw_root(
+            self.cfg.data.raw_reports_dir, self.cfg.data.reports_dir
+        )
+        if self.cfg.data.prefer_raw_data and raw_root is not None:
+            txt = self._read_raw_txt(raw_root, study_id, subject_id)
+            if txt:
+                return txt
+        txt = self._read_flat_txt(prepared_root, study_id)
         if txt:
             return txt
-
-        # Fall back to old artifacts layout
-        return self._read_flat_txt(root, study_id)
+        if (not self.cfg.data.prefer_raw_data) and raw_root is not None:
+            return self._read_raw_txt(raw_root, study_id, subject_id)
+        return ""
 
     def build_study(self, study_id: str) -> StudyRecord:
         study_id = _clean_id(study_id)
-        image_root = Path(self.cfg.data.images_dir)
 
-        # subject_id priority:
-        # 1) studies.csv
-        # 2) infer from raw hierarchy
+        raw_image_root = Path(self.cfg.data.raw_images_dir) if self.cfg.data.raw_images_dir else None
+        prepared_image_root = Path(self.cfg.data.images_dir)
+
         subject_id = self._get_subject_id_from_df(study_id)
-        if not subject_id:
-            subject_id = self._infer_subject_id_from_raw_tree(image_root, study_id)
 
-        # Prefer raw images first, then flat fallback
-        raw_images = self._list_raw_images(image_root, study_id, subject_id)
-        flat_images = self._list_flat_images(image_root, study_id) if not raw_images else []
+        if not subject_id and raw_image_root is not None:
+            subject_id = self._infer_subject_id_from_raw_tree(raw_image_root, study_id)
+
+        raw_images: List[Path] = []
+        if self.cfg.data.prefer_raw_data and raw_image_root is not None:
+            raw_images = self._list_raw_images(raw_image_root, study_id, subject_id)
+
+        flat_images: List[Path] = []
+        if not raw_images:
+            flat_images = self._list_flat_images(prepared_image_root, study_id)
+
+        if (not self.cfg.data.prefer_raw_data) and not flat_images and raw_image_root is not None:
+            raw_images = self._list_raw_images(raw_image_root, study_id, subject_id)
+
         final_images = raw_images if raw_images else flat_images
 
         notes = self._load_notes(study_id, subject_id)
         report = self._load_report(study_id, subject_id)
-
         images = [ImageRef(path=str(p), view="unknown") for p in final_images]
 
         return StudyRecord(
