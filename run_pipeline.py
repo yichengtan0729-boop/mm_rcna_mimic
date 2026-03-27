@@ -6,22 +6,22 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent / "src"))
 
-from mm_rcna.config import load_config
-from mm_rcna.schemas import RepairBudget
-from mm_rcna.utils.io_utils import save_json, load_json
-from mm_rcna.data.mimic_cxr_dataset import MIMICCXRStudyBuilder
-from mm_rcna.data.text_governance import TextGovernanceAgent
-from mm_rcna.models.vision import VisionToolRunner
-from mm_rcna.models.api_clients import OpenAICompatibleClient, NullAPIClient
+from mm_rcna.agents.conflict import MediatorAgent
 from mm_rcna.agents.evidence_builder import MultimodalEvidenceBuilder
 from mm_rcna.agents.evidence_fusion import EvidenceFusion
-from mm_rcna.agents.retrieval import RetrievalAgent, ConflictRetrievalAgent
-from mm_rcna.agents.conflict import MediatorAgent
+from mm_rcna.agents.explainer import ExplainerAgent
+from mm_rcna.agents.repair import OrchestratorRepairLoop
+from mm_rcna.agents.retrieval import ConflictRetrievalAgent, RetrievalAgent
 from mm_rcna.agents.task_coordinator import TaskCoordinatorAgent
 from mm_rcna.agents.verifier import ContractVerifierAgent
-from mm_rcna.agents.repair import OrchestratorRepairLoop
-from mm_rcna.agents.explainer import ExplainerAgent
 from mm_rcna.calibrate.conformal import SplitConformalCalibrator
+from mm_rcna.config import load_config
+from mm_rcna.data.mimic_cxr_dataset import MIMICCXRStudyBuilder
+from mm_rcna.data.text_governance import TextGovernanceAgent
+from mm_rcna.models.api_clients import NullAPIClient, OpenAICompatibleClient
+from mm_rcna.models.vision import VisionToolRunner
+from mm_rcna.schemas import RepairBudget
+from mm_rcna.utils.io_utils import load_json, save_json
 
 
 def _load_saved_qhat(default_qhat: float, conformal_json: str) -> float:
@@ -38,16 +38,19 @@ def main() -> None:
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--output-json", default="./artifacts/pipeline_output.json")
     parser.add_argument("--conformal-json", default="./artifacts/conformal.json")
+    parser.add_argument("--llm-model", default="")
     args = parser.parse_args()
 
     cfg = load_config(args.config)
     qhat = _load_saved_qhat(cfg.conformal.qhat, args.conformal_json)
 
+    llm_model = args.llm_model.strip() if args.llm_model.strip() else cfg.models.api.llm_model
     llm_client = OpenAICompatibleClient(cfg.models.api) if cfg.models.api.enabled else NullAPIClient()
-    llm_model = cfg.models.api.llm_model if cfg.models.api.enabled else None
 
     study_builder = MIMICCXRStudyBuilder(cfg)
+
     gov_agent = TextGovernanceAgent(llm_client=llm_client, model=llm_model)
+
     vision = VisionToolRunner(
         cfg.models.image_encoder_name,
         cfg.models.vision_backbone_name,
@@ -57,6 +60,7 @@ def main() -> None:
         device=args.device,
         checkpoint_path=cfg.models.vision_checkpoint if cfg.models.use_trained_vision_heads else None,
     )
+
     evidence_builder = MultimodalEvidenceBuilder(cfg, llm_client=llm_client, model=llm_model)
     fusion = EvidenceFusion(cfg)
     retrieval_agent = RetrievalAgent(cfg, device=args.device)
@@ -84,6 +88,7 @@ def main() -> None:
     all_conflicts = {}
     all_verifications = {}
     audit_trace = [e.model_dump() for e in gov.audit_events]
+
     subject_id = getattr(study, "subject_id", None)
 
     for task in cfg.prediction.tasks:
@@ -168,7 +173,10 @@ def main() -> None:
         "explanation_text": explanation,
         "audit_trace": audit_trace,
         "conformal_qhat_used": float(qhat),
+        "llm_model_used": llm_model,
+        "llm_api_enabled": bool(cfg.models.api.enabled),
     }
+
     save_json(out, args.output_json)
     print(explanation)
     print(f"\nSaved to {args.output_json}")

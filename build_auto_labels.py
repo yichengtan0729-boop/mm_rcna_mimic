@@ -20,6 +20,7 @@ def main() -> None:
     builder = AutoLabelBuilder(cfg)
     out = builder.build(args.output_csv)
     print(f"Saved to {out}")
+    print(f"Updated studies CSV: {cfg.data.studies_csv}")
 
 
 if __name__ == "__main__":

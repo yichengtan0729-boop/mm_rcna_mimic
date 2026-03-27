@@ -1,0 +1,23 @@
+cd ~/mm_rcna_mimic
+
+conda activate 环境名
+
+pip install -U pip
+
+pip install -U vllm
+
+pip install -r requirements.txt
+
+mkdir -p artifacts
+
+nohup vllm serve Qwen/Qwen2.5-7B-Instruct --host 0.0.0.0 --port 8000 > ./artifacts/qwen_server.log 2>&1 &
+
+sleep 20
+
+curl http://127.0.0.1:8000/v1/models
+
+python build_auto_labels.py --config configs/default.yaml --output-csv ./artifacts/labels.csv
+
+python -m src.mm_rcna.data.build_index --config configs/default.yaml
+
+python run_pipeline.py --config configs/default.yaml --study-id 真实study_id --device cuda --output-json ./artifacts/pipeline_output_real.json

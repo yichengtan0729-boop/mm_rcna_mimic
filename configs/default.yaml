@@ -5,23 +5,31 @@ paths:
   artifacts_dir: ./artifacts
 
 models:
-  text_encoder_name: hash-text-encoder
-  image_encoder_name: hash-image-encoder
-  vision_backbone_name: simple-vision-backbone
+  text_encoder_name: "sentence-transformers/all-MiniLM-L6-v2"
+  image_encoder_name: "openai/clip-vit-base-patch32"
+  vision_backbone_name: "resnet18"
   image_size: 224
-  lesion_labels: [atelectasis, cardiomegaly, edema, effusion, opacity, pneumothorax]
-  lung_regions: [left_upper, left_lower, right_upper, right_lower]
+  lesion_labels:
+    - opacity
+    - effusion
+    - pneumothorax
+    - edema
+    - atelectasis
+  lung_regions:
+    - left_upper
+    - left_lower
+    - right_upper
+    - right_lower
   use_trained_vision_heads: false
-  vision_checkpoint: ./artifacts/vision_heads.json
+  vision_checkpoint: "./artifacts/vision_heads.json"
 
   api:
     enabled: true
-    provider: azure_proxy
-    base_url: https://wei-agent-proxy-bshah3affxh0hyd0.centralus-01.azurewebsites.net/v1
-    auth_token_env: MM_RCNA_AGENT_TOKEN
-    llm_model: gpt-4o-mini
-    temperature: 0.0
-    timeout: 120
+    provider: "openai_compat"
+    base_url: "http://127.0.0.1:8000/v1"
+    api_key: ""
+    auth_token_env: ""
+    llm_model: "Qwen/Qwen2.5-7B-Instruct"
 
 retrieval:
   index_dir: ./artifacts/index

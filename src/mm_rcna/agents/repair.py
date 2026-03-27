@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from mm_rcna.policy.repair_policy import RuleRepairPolicy, LearnedRepairPolicy
+from mm_rcna.policy.repair_policy import LearnedRepairPolicy, RuleRepairPolicy
 from mm_rcna.schemas import RepairTraceStep
 
 
@@ -8,19 +8,31 @@ class OrchestratorRepairLoop:
     def __init__(self, config, llm_client=None, model: str | None = None) -> None:
         self.cfg = config
         self.rule_policy = RuleRepairPolicy()
-        self.learned_policy = LearnedRepairPolicy(config.repair.learned_policy_path) if config.repair.use_learned_policy else None
+        self.learned_policy = (
+            LearnedRepairPolicy(config.repair.learned_policy_path)
+            if config.repair.use_learned_policy
+            else None
+        )
         self.llm_client = llm_client
         self.model = model
 
-    def _choose_action(self, verification, conflict, retrieval, pred):
-        if self.llm_client is not None and getattr(self.llm_client, "ready", False) and self.model:
+    def _choose_action(self, verification, conflict, retrieval, pred, budget):
+        used_llm = False
+
+        if (
+            self.llm_client is not None
+            and getattr(self.llm_client, "ready", False)
+            and self.model
+            and getattr(budget, "api_budget_left", 0) > 0
+        ):
             try:
                 messages = [
                     {
                         "role": "system",
                         "content": (
                             "Choose one repair action from this closed set only: "
-                            "widen_interval, expand_standard_retrieval, trigger_conflict_retrieval, rebuild_evidence, abstain. "
+                            "widen_interval, expand_standard_retrieval, "
+                            "trigger_conflict_retrieval, rebuild_evidence, abstain.\n"
                             "Output strict JSON with keys: action, reason."
                         ),
                     },
@@ -37,7 +49,8 @@ class OrchestratorRepairLoop:
                 ]
                 obj = self.llm_client.json_chat(self.model, messages, max_completion_tokens=250)
                 action = str(obj.get("action", "")).strip()
-                reason = str(obj.get("reason", "llm_selected"))
+                reason = str(obj.get("reason", "llm_selected")).strip()
+
                 if action in {
                     "widen_interval",
                     "expand_standard_retrieval",
@@ -45,12 +58,13 @@ class OrchestratorRepairLoop:
                     "rebuild_evidence",
                     "abstain",
                 }:
-                    return action, reason
+                    used_llm = True
+                    return action, reason, used_llm
             except Exception:
                 pass
 
         if self.learned_policy and self.learned_policy.ready:
-            return self.learned_policy.choose_action(
+            action, reason = self.learned_policy.choose_action(
                 [
                     conflict.conflict_score,
                     retrieval.std,
@@ -58,8 +72,10 @@ class OrchestratorRepairLoop:
                     float(pred.interval_high - pred.interval_low),
                 ]
             )
+            return action, reason, used_llm
 
-        return self.rule_policy.choose_action(verification.violations)
+        action, reason = self.rule_policy.choose_action(verification.violations)
+        return action, reason, used_llm
 
     def apply(
         self,
@@ -80,7 +96,10 @@ class OrchestratorRepairLoop:
         mediator,
         verifier,
     ):
-        action, reason = self._choose_action(verification, conflict, retrieval, pred)
+        action, reason, used_llm = self._choose_action(
+            verification, conflict, retrieval, pred, budget
+        )
+
         updated = []
 
         if action == "widen_interval":
@@ -96,6 +115,7 @@ class OrchestratorRepairLoop:
         elif action == "expand_standard_retrieval":
             old_k = int(self.cfg.retrieval.top_k)
             new_k = min(max(old_k + 5, old_k * 2), old_k + 20)
+
             retrieval = retrieval_agent.retrieve(
                 task.name,
                 task.label_column,
@@ -108,6 +128,7 @@ class OrchestratorRepairLoop:
             pred.point = float((pred.point + retrieval.median) / 2.0)
             pred.interval_low = max(0.0, min(pred.interval_low, retrieval.q10))
             pred.interval_high = min(1.0, max(pred.interval_high, retrieval.q90))
+
             conflict = mediator.run(task.name, fused_evidence, retrieval, None)
             conflict_summary = (
                 conflict_retrieval.retrieve(
@@ -155,7 +176,7 @@ class OrchestratorRepairLoop:
             updated = ["task_prediction"]
 
         budget.rounds_left -= 1
-        if getattr(self.llm_client, "ready", False):
+        if used_llm:
             budget.api_budget_left = max(0, budget.api_budget_left - 1)
 
         trace_step = RepairTraceStep(
