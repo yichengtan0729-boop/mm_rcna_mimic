@@ -1,0 +1,14 @@
+{
+  "study_id": "CXR1",
+  "subject_id": "CXR1",
+  "notes_length": 28,
+  "report_length": 236,
+  "num_images_found": 2,
+  "copied_images": [
+    "artifacts/packaged_samples/study_CXR1/images/CXR1_1.png",
+    "artifacts/packaged_samples/study_CXR1/images/CXR1_2.png"
+  ],
+  "missing_images": [],
+  "package_dir": "/workspace/mm_rcna_mimic/src/artifacts/packaged_samples/study_CXR1",
+  "json_manifest": "/workspace/mm_rcna_mimic/src/artifacts/packaged_samples/study_CXR1/study_package.json"
+}

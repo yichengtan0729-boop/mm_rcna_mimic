@@ -8,7 +8,7 @@ import yaml
 
 @dataclass
 class PathsConfig:
-    artifacts_dir: str = "./artifacts"
+    artifacts_dir: str = "/workspace/mm_rcna_mimic/artifacts"
 
 
 @dataclass
@@ -46,7 +46,7 @@ class ModelsConfig:
     lesion_labels: List[str]
     lung_regions: List[str]
     use_trained_vision_heads: bool = False
-    vision_checkpoint: str = "./artifacts/vision_heads.json"
+    vision_checkpoint: str = "/workspace/mm_rcna_mimic/artifacts/vision_heads.json"
     api: APIConfig = field(default_factory=APIConfig)
 
 
@@ -65,7 +65,7 @@ class RetrievalConfig:
 class ConformalConfig:
     alpha: float = 0.1
     qhat: float = 0.15
-    qhat_json: str = "./artifacts/conformal.json"
+    qhat_json: str = "/workspace/mm_rcna_mimic/artifacts/conformal.json"
 
 
 @dataclass
@@ -84,7 +84,7 @@ class RepairConfig:
     api_budget: int = 0
     token_budget: int = 0
     use_learned_policy: bool = False
-    learned_policy_path: str = "./artifacts/repair_policy.pkl"
+    learned_policy_path: str = "/workspace/mm_rcna_mimic/artifacts/repair_policy.pkl"
 
 
 @dataclass
@@ -113,13 +113,13 @@ class DataConfig:
     raw_notes_dir: str = ""
 
     # fallback prepared dirs
-    notes_dir: str = "./artifacts/notes"
-    reports_dir: str = "./artifacts/reports"
-    images_dir: str = "./artifacts/images"
+    notes_dir: str = "/workspace/mm_rcna_mimic/artifacts/notes"
+    reports_dir: str = "/workspace/mm_rcna_mimic/artifacts/reports"
+    images_dir: str = "/workspace/mm_rcna_mimic/artifacts/images"
 
     # optional tabular sources
     chexpert_csv: str = ""
-    task_labels_csv: str = "./artifacts/labels.csv"
+    task_labels_csv: str = "/workspace/mm_rcna_mimic/artifacts/labels.csv"
 
     # behavior
     prefer_raw_data: bool = True

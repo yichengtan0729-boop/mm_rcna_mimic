@@ -64,6 +64,7 @@ class TextGovernanceAgent:
 
         try:
             obj = self.llm_client.json_chat(self.model, messages, max_completion_tokens=900)
+
             events = []
             for ev in obj.get("audit_events", []):
                 events.append(

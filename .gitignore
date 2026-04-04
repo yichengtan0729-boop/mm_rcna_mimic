@@ -1,0 +1,36 @@
+# dataset / generated artifacts
+artifacts/images/
+artifacts/index/
+artifacts/notes/
+artifacts/reports/
+pipeline_output.json
+studies.csv
+
+# caches
+__pycache__/
+.pytest_cache/
+src/.pytest_cache/
+*.pyc
+*.pyo
+*.pyd
+
+# environments
+.venv/
+venv/
+env/
+
+# logs / temp
+*.log
+tmp/
+temp/
+
+# model weights / checkpoints
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+
+# notebooks / system files
+.ipynb_checkpoints/
+.DS_Store

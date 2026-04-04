@@ -2,7 +2,7 @@
 project_name: mm_rcna_mimic
 
 paths:
-  artifacts_dir: ./artifacts
+  artifacts_dir: /workspace/mm_rcna_mimic/artifacts
 
 models:
   text_encoder_name: "sentence-transformers/all-MiniLM-L6-v2"
@@ -21,18 +21,18 @@ models:
     - right_upper
     - right_lower
   use_trained_vision_heads: false
-  vision_checkpoint: "./artifacts/vision_heads.json"
+  vision_checkpoint: /workspace/mm_rcna_mimic/artifacts/vision_heads.json
 
   api:
     enabled: true
     provider: "openai_compat"
-    base_url: "http://127.0.0.1:8000/v1"
-    api_key: ""
+    base_url: "https://wei-agent-proxy-bshah3affxh0hyd0.centralus-01.azurewebsites.net/v1"
+    api_key: "09bedf972ff7fef5c829c7e7fe7b5e94"
     auth_token_env: ""
-    llm_model: "Qwen/Qwen2.5-7B-Instruct"
+    llm_model: "gpt-4o-mini"
 
 retrieval:
-  index_dir: ./artifacts/index
+  index_dir: /workspace/mm_rcna_mimic/artifacts/index
   top_k: 8
   conflict_top_k: 6
   min_effective_n: 4
@@ -43,7 +43,7 @@ retrieval:
 conformal:
   alpha: 0.1
   qhat: 0.15
-  qhat_json: ./artifacts/conformal.json
+  qhat_json: /workspace/mm_rcna_mimic/artifacts/conformal.json
 
 contracts:
   unstable_dist_std_threshold: 0.20
@@ -58,7 +58,7 @@ repair:
   api_budget: 0
   token_budget: 0
   use_learned_policy: false
-  learned_policy_path: ./artifacts/repair_policy.pkl
+  learned_policy_path: /workspace/mm_rcna_mimic/artifacts/repair_policy.pkl
 
 prediction:
   tasks:
@@ -73,20 +73,23 @@ prediction:
       evidence_topics: [respiratory_status, support_devices]
 
 data:
-  studies_csv: ./artifacts/studies.csv
-  labels_csv: ./artifacts/labels.csv
-  index_dir: ./artifacts/index
+  studies_csv: /workspace/mm_rcna_mimic/artifacts/studies.csv
+  labels_csv: /workspace/mm_rcna_mimic/artifacts/labels.csv
+  index_dir: /workspace/mm_rcna_mimic/artifacts/index
+
+
+
 
   raw_root: /home/azureuser/mimic-cxr
   raw_images_dir: /home/azureuser/mimic-cxr
   raw_reports_dir: /home/azureuser/mimic-cxr
   raw_notes_dir: /home/azureuser/mimic-cxr
 
-  notes_dir: ./artifacts/notes
-  reports_dir: ./artifacts/reports
-  images_dir: ./artifacts/images
+  notes_dir: /workspace/mm_rcna_mimic/artifacts/notes
+  reports_dir: /workspace/mm_rcna_mimic/artifacts/reports
+  images_dir: /workspace/mm_rcna_mimic/artifacts/images
 
   chexpert_csv: ""
-  task_labels_csv: ./artifacts/labels.csv
+  task_labels_csv: /workspace/mm_rcna_mimic/artifacts/labels.csv
 
   prefer_raw_data: true
